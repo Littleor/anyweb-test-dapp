@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html class="no-js" lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>北斗课程 DApp</title>
+</head>
+
+<body>
+<main class="container">
+    <div>
+        <button id="connectedButton">连接钱包</button>
+        <button id="cancelButton">断开钱包</button>
+        <div style="margin: 10px 0;">地址: <span id="address"></span></div>
+        <div style="margin: 10px 0;">OAuth Code: <span id="code"></span></div>
+        <button id="getButton">从水龙头领取 CFX</button>
+    </div>
+
+</main>
+
+</body>
+<script type="text/javascript"
+        src="https://cdn.jsdelivr.net/npm/@idealight-labs/anyweb-js-sdk@1.3.2/dist/anyweb-js-sdk.umd.min.js">
+</script>
+<script type="text/javascript"
+        src="https://cdn.jsdelivr.net/npm/js-conflux-sdk/dist/js-conflux-sdk.umd.min.js"></script>
+<script>
+    const Conflux = window.TreeGraph.Conflux
+    // const now = new Date();
+    // document.write(
+    //`<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@idealight-labs/anyweb-js-sdk/dist/anyweb-js-sdk.umd.min.js?v=${now.getFullYear()}${now.getMonth() +
+    //1}${now.getDate()}"><\/script>`);
+    window.onload = function () {
+        const connectButton = document.getElementById('connectedButton');
+        const cancelButton = document.getElementById('cancelButton');
+        const addressText = document.getElementById('address');
+        const codeText = document.getElementById('code');
+        const getButton = document.getElementById('getButton');
+
+        const abi = [{
+            "inputs": [],
+            "name": "claimCfx",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+        }]
+
+        const confluxFaucetAddress =
+            'cfxtest:acejjfa80vj06j2jgtz9pngkv423fhkuxj786kjr61'
+
+
+        const contract = new Conflux().Contract({abi, address: 'cfxtest:acfk2k2sdmp6a1fkb52taaenv7wekx24w6kkf7rf0e'});
+
+
+        let currentAddress = ''
+        const provider = new window.AnyWeb.Provider({
+            logger: console,
+            appId: 'a0982b96-bc17-47c7-868d-277e84b5e69a'
+        })
+
+        console.log("provider", provider)
+        provider.on('ready', async () => {
+            connectButton.onclick = () => {
+                provider.request({
+                    method: 'cfx_accounts',
+                    params: [{
+                        availableNetwork: [1, 1029],
+                        scopes: ['baseInfo', 'identity'],
+                    }],
+                }).then((data) => {
+                    const {chainId, networkId, address, code} = data
+                    currentAddress = address[0]
+                    addressText.textContent = address[0]
+                    codeText.textContent = code
+                }).catch((e) => {
+                    console.error('调用失败', e)
+                })
+
+            }
+            getButton.onclick = () => {
+                provider.request({
+                    method: 'cfx_sendTransaction',
+                    params: [{
+                        from: currentAddress,
+                        to: confluxFaucetAddress,
+                        data: contract.claimCfx().data,
+                    }]
+                }).then((result) => {
+                    console.log("调用结果", result)
+                }).catch((e) => {
+                    console.error('调用失败', e)
+                })
+            }
+            cancelButton.onclick = () => {
+                provider.request({
+                    method: 'exit_accounts'
+                }).then(() => {
+                    // 后续操作
+                    addressText.textContent = ''
+                    codeText.textContent = ''
+                }).catch((e) => {
+                    console.error('调用失败', e)
+                })
+            }
+        })
+    }
+
+</script>
+</html>
